@@ -1,12 +1,7 @@
 var Odoo = require('node-odoo');
- 
-var odoo = new Odoo({
-  host: 'localhost',
-  port: 8069,
-  database: 'yummy-thai',
-  username: 'yummythai@matt-fellows.me.uk',
-  password: 'i39ftsuAbC'
-});
+const config = require('config/config');
+
+var odoo = new Odoo(config);
  
 // Connect to Odoo
 odoo.connect(function (err) {
