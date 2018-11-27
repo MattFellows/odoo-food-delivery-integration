@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^3.5.3",
+    "express": "^4.16.4",
     "node-odoo": "^0.1.1"
   }
 }
