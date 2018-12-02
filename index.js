@@ -5,7 +5,7 @@ const config = require('./config/config');
 const express = require('express');
 const odoo = new Odoo(config);
 
-const port = process.env.port || 3000;
+const port = process.env.port || 3010;
 
 this.app = express();
 this.router = express.Router();
@@ -26,6 +26,14 @@ this.router.get('/api/complete-orders', (req, res) => {
     return getCompleteOrders(req, res);
 });
 
+this.router.get('/api/order-lines/:orderId', (req, res) => {
+    return getOrderLines(req.params.orderId, res);
+});
+
+this.router.get('/api/partner/:partnerId', (req, res) => {
+    return getPartner(req.params.partnerId, res);
+});
+
 this.router.put('/api/accept-order/:orderid', (req, res) => {
     return acceptOrder(req, res);
 });
@@ -36,6 +44,10 @@ this.router.put('/api/deliver-order/:orderid', (req, res) => {
 
 this.router.put('/api/complete-order/:orderid', (req, res) => {
     return completeOrder(req, res);
+});
+
+this.router.put('/api/reset-order/:orderid', (req, res) => {
+    return resetOrder(req, res);
 });
 
 this.app.use(this.router);
@@ -84,13 +96,53 @@ function getOrdersInState(orderstate, res) {
         return Promise.all(orderRequests);
     }).then((orders) => {
         console.log(orders.map((o) => {
-            return o[0]
+            return o[0];
         }));
         return res.json({
             orders: orders.map((o) => {
-                return o[0]
+                return o[0];
             })
         });
+    }).catch((err) => {
+        console.error(err);
+        res.statusCode(500);
+    });
+}
+
+
+function getOrderLines(orderId, res) {
+// Connect to Odoo
+    odoo.connectAsync().then(() => {
+        console.log(`Searching for orderlines on orderId ${orderId}`);
+        return odoo.searchAsync('sale.order.line', [["order_id.id", "=", orderId]]);
+    }).then((orderslines) => {
+        console.log(orderslines);
+        let orderLineRequests = [];
+        for (let i = 0; i < orderslines.length; i++) {
+            orderLineRequests.push(odoo.getAsync('sale.order.line', orderslines[i]));
+        }
+        return Promise.all(orderLineRequests);
+    }).then((orders) => {
+        return res.json({
+            orderLines: orders.map((o) => {
+                return o[0];
+            })
+        });
+    }).catch((err) => {
+        console.error(err);
+        res.statusCode(500);
+    });
+}
+
+
+function getPartner(partnerId, res) {
+// Connect to Odoo
+    odoo.connectAsync().then(() => {
+        console.log(`Searching for partner ${partnerId}`);
+        return odoo.getAsync('res.partner', parseInt(partnerId, 10));
+    }).then((partner) => {
+        console.log(partner);
+        res.json(partner);
     }).catch((err) => {
         console.error(err);
         res.statusCode(500);
@@ -110,6 +162,11 @@ function deliverOrder(req, res) {
 
 function completeOrder(req, res) {
     let newState = 'delivered';
+    updateStateOfOrder(req, newState, res);
+}
+
+function resetOrder(req, res) {
+    let newState = 'sale';
     updateStateOfOrder(req, newState, res);
 }
 
